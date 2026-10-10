@@ -1,0 +1,68 @@
+<div class="space-y-6">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <div class="eyebrow">Extensions</div>
+      <h1 class="mt-1 text-2xl font-semibold tracking-tight">Plugins</h1>
+      <p class="mt-1 text-sm text-ink-faint">Extend ForgeX without modifying the core panel.</p>
+    </div>
+    <form action="/api/plugins/install" method="post" enctype="multipart/form-data" class="flex items-center gap-2">
+      <input name="plugin" type="file" accept=".zip,application/zip" required class="block max-w-[240px] text-sm" />
+      <button class="btn btn-primary" type="submit">Install plugin</button>
+    </form>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-3">
+    <div class="card p-5"><div class="eyebrow">Installed</div><div class="mt-2 text-2xl font-semibold">{{plugins.length}}</div></div>
+    <div class="card p-5"><div class="eyebrow">Enabled</div><div class="mt-2 text-2xl font-semibold">{{enabledCount}}</div></div>
+    <div class="card p-5"><div class="eyebrow">Runtime</div><div class="mt-2 text-sm text-ink-faint">Hooks load when ForgeX starts.</div></div>
+  </div>
+
+  <div class="card overflow-hidden">
+    <div class="border-b border-line px-5 py-4 font-medium">Installed extensions</div>
+    {{#if plugins.length}}
+      <div class="divide-y divide-line">
+        {{#each plugins}}
+          <div class="flex flex-wrap items-center gap-4 px-5 py-4">
+            <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-link">{{{icon 'puzzle' 'size-5'}}}</div>
+            <div class="min-w-0 flex-1">
+              <div class="font-medium">{{name}} <span class="text-xs text-ink-faint">v{{version}}</span></div>
+              <div class="text-sm text-ink-faint">{{description}}</div>
+              <div class="mt-1 text-xs text-ink-faint">{{id}} · {{default author 'Unknown author'}}</div>
+            </div>
+            <div class="flex items-center gap-2">
+              {{#if enabled}}
+                <span class="badge badge-ok">Enabled</span>
+                <button class="btn btn-secondary" data-plugin-action="disable" data-plugin-id="{{id}}">Disable</button>
+              {{else}}
+                <span class="badge">Disabled</span>
+                <button class="btn btn-secondary" data-plugin-action="enable" data-plugin-id="{{id}}">Enable</button>
+              {{/if}}
+              <button class="btn btn-danger" data-plugin-action="delete" data-plugin-id="{{id}}">Remove</button>
+            </div>
+          </div>
+        {{/each}}
+      </div>
+    {{else}}
+      <div class="px-5 py-12 text-center text-sm text-ink-faint">No plugins installed.</div>
+    {{/if}}
+  </div>
+
+  <div class="card p-5">
+    <div class="font-medium">Plugin contract</div>
+    <p class="mt-2 text-sm text-ink-faint">A plugin contains <code>plugin.json</code> and an entry module. The entry exports <code>register(context)</code>. Extensions can subscribe to lifecycle hooks such as server actions and add their own automation/integrations through the documented ForgeX API.</p>
+    <p class="mt-2 text-xs text-ink-faint">Enabling, disabling, or installing a plugin requires a ForgeX restart before its runtime hooks are active.</p>
+  </div>
+</div>
+<script>
+for (const button of document.querySelectorAll('[data-plugin-action]')) {
+  button.addEventListener('click', async () => {
+    const id = button.dataset.pluginId;
+    const action = button.dataset.pluginAction;
+    const method = action === 'delete' ? 'DELETE' : 'POST';
+    if (action === 'delete' && !confirm(`Remove ${id}?`)) return;
+    const r = await fetch(`/api/plugins/${encodeURIComponent(id)}/${action === 'delete' ? '' : action}`, { method });
+    if (!r.ok) { alert('Plugin operation failed.'); return; }
+    location.reload();
+  });
+}
+</script>
